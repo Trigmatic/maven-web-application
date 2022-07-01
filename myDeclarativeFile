@@ -1,0 +1,64 @@
+pipeline{
+     agent any
+     tools {
+         maven "maven3.8.6"
+     }
+     stages{
+         stage('CloneCode'){
+           steps{
+           sh "echo  Latest version of code committed"
+           git "https://github.com/Trigmatic/maven-web-application"
+         }
+        }
+        stage('TestBuild'){
+            steps{
+              sh "echo This is testing and building the code "
+                sh "mvn clean install"
+            }
+        }
+       stage('CodeQuality'){
+                     steps{
+                       sh "echo Runing code quality analysis"
+                       sh "mvn sonar:sonar"
+                     }   
+       }
+       stage('UploadNexus'){
+                     steps{
+                       sh "echo Uploading artificats into nexus"
+                       sh "mvn deploy"
+                     }   
+       }
+       stage('DeployingApp'){
+                     steps{
+                       sh "echo Ready for deployment"
+                       deploy adapters: [tomcat9(credentialsId: 'tomcat-credentials', path: '', url: 'http://15.222.12.150:8080/')], contextPath: null, war: 'target/*war'
+                     }   
+       }
+     }
+     post{
+        always {
+           emailext body: '''Hey,
+
+This job is very good.
+
+abdul
+''', recipientProviders: [buildUser(), contributor(), developers()], subject: 'Job Status', to: 'abosumanu236@gmail.com'
+       }
+       // success{
+         emailext body: '''Hey,
+
+This job was a success.
+
+abdul
+''', recipientProviders: [buildUser(), contributor(), developers()], subject: 'Job Status', to: 'abosumanu236@gmail.com'
+       }
+       //failure {
+         emailext body: '''Hey,
+
+This job failed, very and fix the problem.
+
+abdul
+''', recipientProviders: [buildUser(), contributor(), developers()], subject: 'Job Status', to: 'abosumanu236@gmail.com'
+       }
+     }
+}
